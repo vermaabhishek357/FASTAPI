@@ -1,13 +1,17 @@
 from fastapi import FastAPI
 from fastapi.params import Body
 from pydantic import BaseModel
-
+from typing import Optional
 
 app = FastAPI()
 
 
 # define class and extend BaseModel, to control and validate the data posted
-class 
+class Post(BaseModel): # pydantic model
+    title : str
+    content : str
+    published : bool = True
+    rating : Optional[int] = None
 
 #path operation/route
 @app.get("/") # decorator to give endpoint in API, consists of @ appname and then http method with path for user
@@ -20,8 +24,8 @@ def get_posts():
 
 
 @app.post("/createposts")
-def create_posts(payLoad: dict = Body(...)):
-    print(payLoad)
-    return {"new_post" :  f"title : {payLoad['Title']} content : {payLoad['Content']}"}
+def create_posts(post : Post):  # refer the Post pydantic model
+    print(post)
+    return {"data" : post}
 
 # title str, content str, 
