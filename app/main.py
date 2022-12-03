@@ -3,8 +3,9 @@ from fastapi.params import Body
 from pydantic import BaseModel
 from typing import Optional
 from random import randrange
-import psycopg2 
-
+import psycopg2
+from psycopg2.extras import RealDictCursor
+import time
 # initiate the app
 app = FastAPI()
 
@@ -17,21 +18,18 @@ class Post(BaseModel): # pydantic model
     #rating : Optional[int] = None
 
 
-# connect to pyscopg2 to postgresql fastapi database
-try:
-    conn = psycopg2.connect() # pass host, database, user, password in connect method
-
-# array to save posts in memory temporarily
-my_posts = [{"title" : "title 1", "content" : "content 1", "id" : 1}, 
-{"title" : "title 2", "content" : "content 2", "id" : 2}, 
-{"title" : "title 3", "content" : "content 3", "id" : 3}]
-
-#finding post with ID
-def find_post(id):
-    #print(type(id))
-    for p in my_posts:
-        if p["id"] == id:
-            return p
+# connect pyscopg2 to postgresql fastapi database
+while True:
+    try:
+        conn = psycopg2.connect(host = 'localhost', database = 'fastapi', user = 'postgres', password = 'Qazwsx123#', 
+        cursor_factory = RealDictCursor) # pass host, database, user, password in connect method
+        cursor = conn.cursor()
+        print("Connection to database successfully created")
+        break
+    except Exception as error:
+        print("Connection to database failed")
+        print("Error : ", error)
+        time.sleep(1)
 
 
 """#path operation/route
@@ -42,28 +40,36 @@ def root():  # function, if async for asynchronous task
 # retrieving all post
 @app.get("/posts")
 def get_posts():
-    return  {"Data" : my_posts}
+
+    cursor.execute("""SELECT * FROM posts""")  # sql query to get alll data
+    posts = cursor.fetchall()
+
+    return  {"Data" : posts}
+
+
 
 # Creating the post
 @app.post("/posts", status_code=status.HTTP_201_CREATED)
 def create_posts(post : Post):  # refer the Post pydantic model
-    print(post)
-    post_dict = post.dict()
-    post_dict['id'] = randrange(0,10000000000)
-    my_posts.append(post_dict)
-    return {"data" : post_dict}
+
+    cursor.execute("""INSERT INTO posts (title, content, published) VALUES (%s, %s, %s) RETURNING *""", 
+                (post.title, post.content, post.published))
+    new_post = cursor.fetchone() # fetch the posted data
+
+    conn.commit() # Commit the changes made to database table
+
+    return {"data" : new_post}
+
 
 # Retrieving post with ID
 @app.get("/posts/{id}")
 #def get_post(id : int, response : Response):
 def get_post(id : int):
-    #print(type(id))
-    #ID = int(id)
-    post = find_post(id)
+
+    cursor.execute("""SELECT * FROM posts WHERE id = %s""", (str(id),))  # sql query to get alll data
+    post = cursor.fetchone()
+    
     if not post:
-        # done mannually, can raise a http exception
-        #response.status_code = status.HTTP_404_NOT_FOUND  
-        #return{'message' : f"post with id : {id} not found"}
         raise HTTPException(status_code = status.HTTP_404_NOT_FOUND, detail=f"post with id : {id} not found")
     return {"post_detail" : post}
 
