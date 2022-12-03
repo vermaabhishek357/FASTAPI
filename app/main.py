@@ -61,6 +61,7 @@ def create_posts(post : Post):  # refer the Post pydantic model
     return {"data" : new_post}
 
 
+
 # Retrieving post with ID
 @app.get("/posts/{id}")
 #def get_post(id : int, response : Response):
@@ -71,41 +72,40 @@ def get_post(id : int):
     
     if not post:
         raise HTTPException(status_code = status.HTTP_404_NOT_FOUND, detail=f"post with id : {id} not found")
+    
     return {"post_detail" : post}
 
-# find  the index in array with the id
-def find_index_post(id : int):
-    for i, p in enumerate(my_posts):
-        if p['id'] == id:
-            return i
+
+
 
 # Deleting the post
 @app.delete("/posts/{id}")
 def delete_post(id : int, status_code=status.HTTP_204_NO_CONTENT):
 
-    # find  the index in array with the id
-    index = find_index_post(id)
+    cursor.execute("""DELETE FROM posts WHERE id = %s RETURNING *""", (str(id),))  # sql query to get alll data
+    post = cursor.fetchone()
+    conn.commit() # Commit the changes made to database table
 
-    if index == None:
+    if post == None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail = f"post with id : {id} does not exist")
-    my_posts.pop(index)
 
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
 
 
 # Update post
 @app.put("/posts/{id}")
 def update_post(id : int, post : Post): # Post to send request to right schema
 
-    print(post)
-    # find  the index in array with the id
-    index = find_index_post(id)
+    cursor.execute("""UPDATE posts SET title = %s, content = %s, published = %s WHERE id = %s RETURNING *""", 
+                (post.title, post.content, post.published, str(id),))  # sql query to get alll data
+    post = cursor.fetchone()
+    conn.commit() # Commit the changes made to database table
 
-    if index == None:
+    if post == None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail = f"post with id : {id} does not exist")
     
-    post_dict = post.dict() # convert json post to dictionary
-    post_dict['id'] = id
-    my_posts[index] = post_dict
-    return {"data" : post_dict}
+
+    return {"data" : post}
 # title str, content str, 
