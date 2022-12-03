@@ -12,7 +12,7 @@ class Post(BaseModel): # pydantic model
     title : str
     content : str
     published : bool = True
-    rating : Optional[int] = None
+    #rating : Optional[int] = None
 
 # array to save posts in memory temporarily
 my_posts = [{"title" : "title 1", "content" : "content 1", "id" : 1}, 
