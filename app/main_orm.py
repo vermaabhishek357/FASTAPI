@@ -31,6 +31,12 @@ while True:
         print("Error : ", error)
         time.sleep(1)
 
+
+"""#path operation/route
+@app.get("/") # decorator to give endpoint in API, consists of @ appname and then http method with path for user
+def root():  # function, if async for asynchronous task
+    return {"message" : "Welcome to my api!!!!!!"}"""
+
 # retrieving all post
 @app.get("/posts")
 def get_posts():
@@ -101,5 +107,5 @@ def update_post(id : int, post : Post): # Post to send request to right schema
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail = f"post with id : {id} does not exist")
     
 
-    return {"data" : post} 
-    
+    return {"data" : post}
+# title str, content str, 
