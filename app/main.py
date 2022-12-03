@@ -3,7 +3,9 @@ from fastapi.params import Body
 from pydantic import BaseModel
 from typing import Optional
 from random import randrange
+import psycopg2 
 
+# initiate the app
 app = FastAPI()
 
 # creating the model
@@ -13,6 +15,11 @@ class Post(BaseModel): # pydantic model
     content : str
     published : bool = True
     #rating : Optional[int] = None
+
+
+# connect to pyscopg2 to postgresql fastapi database
+try:
+    conn = psycopg2.connect() # pass host, database, user, password in connect method
 
 # array to save posts in memory temporarily
 my_posts = [{"title" : "title 1", "content" : "content 1", "id" : 1}, 
