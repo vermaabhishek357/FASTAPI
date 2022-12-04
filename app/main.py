@@ -31,7 +31,7 @@ while True:
 
 
 # retrieving all post
-@app.get("/posts", response_model=list[schemas.Post])
+@app.get("/posts", response_model=List[schemas.Post])
 def get_posts(db: Session = Depends(get_db)):
 
     #run sql query and call it, using SQL query and ORM
@@ -75,7 +75,7 @@ def get_post(id : int, db: Session = Depends(get_db)):
     if not post:
         raise HTTPException(status_code = status.HTTP_404_NOT_FOUND, detail=f"post with id : {id} not found")
     
-    return {"post_detail" : post}
+    return post
 
 
 
