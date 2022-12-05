@@ -1,9 +1,19 @@
-from .. import models, schemas, utils
+from fastapi import Response, status, HTTPException, Depends, APIRouter
+from .. import models, schemas, utils, oauth2
+from ..database import  get_db
+from sqlalchemy.orm import Session
+from typing import List
+#from ..main import app
 
+
+router = APIRouter(
+    prefix = "/posts",
+    tags=['Posts']
+)
 
 # retrieving all post
-@app.get("/posts", response_model=List[schemas.Post])
-def get_posts(db: Session = Depends(get_db)):
+@router.get("/", response_model=List[schemas.Post])
+def get_posts(db: Session = Depends(get_db), user_id : int = Depends(oauth2.get_current_user)):
 
     posts = db.query(models.Post).all()
 
@@ -12,9 +22,10 @@ def get_posts(db: Session = Depends(get_db)):
 
 
 # Creating the post
-@app.post("/posts", status_code=status.HTTP_201_CREATED, response_model=schemas.Post)
-def create_posts(post : schemas.PostCreate, db: Session = Depends(get_db)):  # refer the Post pydantic model
+@router.post("/", status_code=status.HTTP_201_CREATED, response_model=schemas.Post)
+def create_posts(post : schemas.PostCreate, db: Session = Depends(get_db), user_id : int = Depends(oauth2.get_current_user)):  # refer the Post pydantic model
 
+    print(user_id)
     new_post = models.Post(**post.dict()) # ** and then to dict opens the dictionary and each column not need to be written
     db.add(new_post)
     db.commit()
@@ -22,11 +33,9 @@ def create_posts(post : schemas.PostCreate, db: Session = Depends(get_db)):  # r
     return new_post
 
 
-
 # Retrieving post with ID
-@app.get("/posts/{id}", response_model=schemas.Post)
-#def get_post(id : int, response : Response):
-def get_post(id : int, db: Session = Depends(get_db)):
+@router.get("/{id}", response_model=schemas.Post)
+def get_post(id : int, db: Session = Depends(get_db), user_id : int = Depends(oauth2.get_current_user)):
     
     post = db.query(models.Post).filter(models.Post.id == id).first()
 
@@ -39,8 +48,8 @@ def get_post(id : int, db: Session = Depends(get_db)):
 
 
 # Deleting the post
-@app.delete("/posts/{id}")
-def delete_post(id : int, db: Session = Depends(get_db), status_code=status.HTTP_204_NO_CONTENT):
+@router.delete("/{id}")
+def delete_post(id : int, db: Session = Depends(get_db), status_code=status.HTTP_204_NO_CONTENT, user_id : int = Depends(oauth2.get_current_user)):
 
     post = db.query(models.Post).filter(models.Post.id == id)
 
@@ -56,8 +65,8 @@ def delete_post(id : int, db: Session = Depends(get_db), status_code=status.HTTP
 
 
 # Update post
-@app.put("/posts/{id}", response_model=schemas.Post)
-def update_post(id : int, post : schemas.PostCreate, db: Session = Depends(get_db)): # Post to send request to right schema
+@router.put("/{id}", response_model=schemas.Post)
+def update_post(id : int, post : schemas.PostCreate, db: Session = Depends(get_db), user_id : int = Depends(oauth2.get_current_user)): # Post to send request to right schema
 
     refresh_post = db.query(models.Post).filter(models.Post.id == id)
 
