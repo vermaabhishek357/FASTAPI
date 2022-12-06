@@ -13,9 +13,11 @@ router = APIRouter(
 
 # retrieving all post
 @router.get("/", response_model=List[schemas.Post])
-def get_posts(db: Session = Depends(get_db), user_id : int = Depends(oauth2.get_current_user)):
+def get_posts(db: Session = Depends(get_db), current_user : int = Depends(oauth2.get_current_user)):
 
+    #posts = db.query(models.Post).filter(models.Post.owner_id == current_user.id).all() # to get post for logged in user
     posts = db.query(models.Post).all()
+
 
     return  posts
 
@@ -23,10 +25,10 @@ def get_posts(db: Session = Depends(get_db), user_id : int = Depends(oauth2.get_
 
 # Creating the post
 @router.post("/", status_code=status.HTTP_201_CREATED, response_model=schemas.Post)
-def create_posts(post : schemas.PostCreate, db: Session = Depends(get_db), user_id : int = Depends(oauth2.get_current_user)):  # refer the Post pydantic model
+def create_posts(post : schemas.PostCreate, db: Session = Depends(get_db), current_user : int = Depends(oauth2.get_current_user)):  # refer the Post pydantic model
 
-    print(user_id)
-    new_post = models.Post(**post.dict()) # ** and then to dict opens the dictionary and each column not need to be written
+    #print(current_user.email)
+    new_post = models.Post(owner_id  = current_user.id, **post.dict()) # ** and then to dict opens the dictionary and each column not need to be written
     db.add(new_post)
     db.commit()
     db.refresh(new_post)
@@ -35,12 +37,16 @@ def create_posts(post : schemas.PostCreate, db: Session = Depends(get_db), user_
 
 # Retrieving post with ID
 @router.get("/{id}", response_model=schemas.Post)
-def get_post(id : int, db: Session = Depends(get_db), user_id : int = Depends(oauth2.get_current_user)):
+def get_post(id : int, db: Session = Depends(get_db), current_user  : int = Depends(oauth2.get_current_user)):
     
     post = db.query(models.Post).filter(models.Post.id == id).first()
 
     if not post:
         raise HTTPException(status_code = status.HTTP_404_NOT_FOUND, detail=f"post with id : {id} not found")
+    
+        # query if post belong to same user
+    if post.owner_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail = "Not authorized to perform requested action")
     
     return post
 
@@ -49,14 +55,18 @@ def get_post(id : int, db: Session = Depends(get_db), user_id : int = Depends(oa
 
 # Deleting the post
 @router.delete("/{id}")
-def delete_post(id : int, db: Session = Depends(get_db), status_code=status.HTTP_204_NO_CONTENT, user_id : int = Depends(oauth2.get_current_user)):
+def delete_post(id : int, db: Session = Depends(get_db), status_code=status.HTTP_204_NO_CONTENT, current_user  : int = Depends(oauth2.get_current_user)):
 
-    post = db.query(models.Post).filter(models.Post.id == id)
+    post_query = db.query(models.Post).filter(models.Post.id == id)
+    post = post_query.first()
 
-    if post.first() == None:
+    if post == None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail = f"post with id : {id} does not exist")
     
-    post.delete(synchronize_session=False)
+    # query if post belong to same user
+    if post.owner_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail = "Not authorized to perform requested action")
+    post_query.delete(synchronize_session=False)
     db.commit()
 
     return Response(status_code=status.HTTP_204_NO_CONTENT)
@@ -66,14 +76,19 @@ def delete_post(id : int, db: Session = Depends(get_db), status_code=status.HTTP
 
 # Update post
 @router.put("/{id}", response_model=schemas.Post)
-def update_post(id : int, post : schemas.PostCreate, db: Session = Depends(get_db), user_id : int = Depends(oauth2.get_current_user)): # Post to send request to right schema
+def update_post(id : int, post_update : schemas.PostCreate, db: Session = Depends(get_db), current_user  : int = Depends(oauth2.get_current_user)): # Post to send request to right schema
 
     refresh_post = db.query(models.Post).filter(models.Post.id == id)
 
-    if refresh_post.first() == None:
+    post = refresh_post.first()
+
+    if post == None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail = f"post with id : {id} does not exist")
     
-    refresh_post.update(post.dict(), synchronize_session=False)
+    # query if post belong to same user
+    if post.owner_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail = "Not authorized to perform requested action")
+    refresh_post.update(post_update.dict(), synchronize_session=False)
     db.commit()
 
     return refresh_post.first()
