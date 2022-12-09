@@ -21,7 +21,7 @@ class Post(BaseModel): # pydantic model
 # connect pyscopg2 to postgresql fastapi database
 while True:
     try:
-        conn = psycopg2.connect(host = 'localhost', database = 'fastapi', user = 'postgres', password = 'Qazwsx123#', 
+        conn = psycopg2.connect(host = 'localhost', database = 'fastapi', user = 'postgres', password = '', #provide password when needed
         cursor_factory = RealDictCursor) # pass host, database, user, password in connect method
         cursor = conn.cursor()
         print("Connection to database successfully created")
