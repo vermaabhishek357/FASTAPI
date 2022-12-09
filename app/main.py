@@ -6,8 +6,8 @@ from .config import settings
 
 print(settings.database_username)
 
-#call create engine to create tables from models
-models.Base.metadata.create_all(bind=engine)
+#call create engine to create tables from models using sqlalchemy
+#models.Base.metadata.create_all(bind=engine) # commented as alembic is being used to migrate to database
 
 # initiate the app
 app = FastAPI()
